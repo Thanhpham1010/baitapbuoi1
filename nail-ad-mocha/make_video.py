@@ -35,7 +35,7 @@ F_CAP = f(INTER + "Inter-ExtraBold.otf", 76)
 F_TRACK = f(INTER + "Inter-Bold.otf", 64)
 F_LOGO_S = f(SERIF + "Caladea-Bold.ttf", 50)
 F_LOGO_SUB = f(INTER + "Inter-SemiBold.otf", 17)
-F_LOGO_L = f(SERIF + "Caladea-Bold.ttf", 170)
+F_LOGO_L = f(SERIF + "Caladea-Bold.ttf", 140)
 F_SUB_L = f(INTER + "Inter-SemiBold.otf", 34)
 F_ITAL = f(SCRIPT, 84, "SemiBold")
 F_SMALL = f(INTER + "Inter-SemiBold.otf", 30)
@@ -260,7 +260,7 @@ T += SEG
 
 # ---- end card ----
 BGE = blurred_bg(I2, 0.35)
-WIN_W, WIN_H = 520, 660
+WIN_W, WIN_H = 780, 960
 oval = Image.new("L", (WIN_W, WIN_H), 0)
 ImageDraw.Draw(oval).ellipse((0, 0, WIN_W - 1, WIN_H - 1), fill=255)
 oval = oval.filter(ImageFilter.GaussianBlur(1.2))
@@ -274,23 +274,23 @@ for i in range(int(END * FPS)):
     k = ease(t / 0.6)
     sc = 0.85 + 0.15 * k
     ww, wh = int(WIN_W * sc), int(WIN_H * sc)
-    win = view(I1_BIG, 2 * 300, 2 * 470, 2 * (560 - 40 * t / END), (ww, wh))
+    win = view(I1_BIG, 2 * 320, 2 * 470, 2 * (690 - 60 * t / END), (ww, wh))
     m = oval.resize((ww, wh)).point(lambda v: int(v * k))
-    wy = 230 + (WIN_H - wh) // 2
+    wy = 110 + (WIN_H - wh) // 2
     fr.paste(win, ((W - ww) // 2, wy), m)
     r = ring.resize((ww + 28, wh + 28))
     r.putalpha(r.getchannel("A").point(lambda v: int(v * k)))
     fr.alpha_composite(r, ((W - ww) // 2 - 14, wy - 14))
     sparkles(fr, T + t, 0.6)
-    text_in(fr, t, 0.35, lambda d, dy: spaced(d, (W / 2, 950 + dy), "GLOSS", F_LOGO_L, CREAM + (255,), 20))
-    text_in(fr, t, 0.55, lambda d, dy: spaced(d, (W / 2, 1140 + dy), "NAIL BAR", F_SUB_L, GOLD + (255,), 16))
-    text_in(fr, t, 0.85, lambda d, dy: d.text((W / 2, 1250 + dy), "Mocha Collection", font=F_ITAL,
+    text_in(fr, t, 0.35, lambda d, dy: spaced(d, (W / 2, 1105 + dy), "GLOSS", F_LOGO_L, CREAM + (255,), 20))
+    text_in(fr, t, 0.55, lambda d, dy: spaced(d, (W / 2, 1270 + dy), "NAIL BAR", F_SUB_L, GOLD + (255,), 16))
+    text_in(fr, t, 0.85, lambda d, dy: d.text((W / 2, 1375 + dy), "Mocha Collection", font=F_ITAL,
                                                 fill=CREAM + (255,), anchor="mm"))
-    text_in(fr, t, 1.2, lambda d, dy: spaced(d, (W / 2, 1400 + dy), "CALL TO BOOK", F_SMALL, CREAM + (200,), 9))
+    text_in(fr, t, 1.2, lambda d, dy: spaced(d, (W / 2, 1475 + dy), "CALL TO BOOK", F_SMALL, CREAM + (200,), 9))
     def phone(d, dy):
         txt = "(929) 888-8288"
         tw = d.textlength(txt, font=F_PHONE)
-        x0, y0 = (W - tw) / 2 - 48, 1460 + dy
+        x0, y0 = (W - tw) / 2 - 48, 1530 + dy
         d.rounded_rectangle((x0, y0, x0 + tw + 96, y0 + 140), radius=70, outline=GOLD + (255,), width=4)
         d.text((W / 2, y0 + 70), txt, font=F_PHONE, fill=GOLD + (255,), anchor="mm")
     text_in(fr, t, 1.4, phone)
