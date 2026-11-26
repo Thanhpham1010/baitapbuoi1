@@ -1,6 +1,6 @@
 """18s 9:16 luxury ad for Gloss Nail Bar (Brooklyn) from three nail photos.
 
-Usage: python3 make_video.py OUT_silent.mp4
+Usage: python3 make_video.py OUT_silent.mp4 [9x16|4x5]
 Black & gold editorial look: gold-gradient serif type, thin gold frame,
 slow camera moves, soft dissolves on the 80 BPM bar lines (every 3s).
 """
@@ -12,9 +12,19 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 OUT = sys.argv[1]
+FMT = sys.argv[2] if len(sys.argv) > 2 else "9x16"
+LAYOUTS = {
+    "9x16": dict(H=1920, cap_small=1545, cap_big=1640, cap_step=92, intro_dy=0,
+                 arch=(660, 840, 150), end_logo=1110, end_bar=1235, end_rule=1290, end_book=1350,
+                 end_phone=1440, end_addr=1545, glow=(120, 1100), grad=(0.55, 235)),
+    "4x5": dict(H=1350, cap_small=1000, cap_big=1092, cap_step=88, intro_dy=-270,
+                arch=(480, 560, 70), end_logo=745, end_bar=860, end_rule=905, end_book=955,
+                end_phone=1035, end_addr=1125, glow=(60, 760), grad=(0.42, 250)),
+}
+L = LAYOUTS[FMT]
 HERE = os.path.dirname(os.path.abspath(__file__))
 FONTS = os.path.join(HERE, "..", "love-video", "fonts")
-W, H, FPS = 1080, 1920, 30
+W, H, FPS = 1080, L["H"], 30
 TOTAL = 18.0
 XF = 0.7                       # dissolve length
 
@@ -119,7 +129,8 @@ def cream_layer(draw_fn, alpha=1.0, color=CREAM, shadow=True):
 # ---- static overlays ----
 grad = np.zeros((H, 1), np.float32)
 yy = np.arange(H)
-grad[:, 0] = np.clip((yy - H * 0.55) / (H * 0.45), 0, 1) ** 1.2 * 235
+g0, gmax = L["grad"]
+grad[:, 0] = np.clip((yy - H * g0) / (H * (1 - g0)), 0, 1) ** 1.2 * gmax
 grad[:, 0] = np.maximum(grad[:, 0], np.clip(1 - yy / 260, 0, 1) * 120)
 SHADE = Image.new("RGBA", (W, H), (8, 6, 5, 255))
 SHADE.putalpha(Image.fromarray(np.repeat(grad, W, 1).astype(np.uint8)))
@@ -146,13 +157,13 @@ def caption(fr, t, t0, small, big_lines):
     k = ease((t - t0) / 0.8)
     if k <= 0:
         return
-    fr.alpha_composite(gold_layer(lambda d: tracked(d, W / 2, 1545 + (1 - k) * 20, small, F_TRACK, 255, 9), k))
+    fr.alpha_composite(gold_layer(lambda d: tracked(d, W / 2, L["cap_small"] + (1 - k) * 20, small, F_TRACK, 255, 9), k))
     for i, line in enumerate(big_lines):
         kk = ease((t - t0 - 0.25 - 0.2 * i) / 0.8)
         if kk <= 0:
             continue
         fr.alpha_composite(cream_layer(
-            lambda d, line=line, i=i: d.text((W / 2, 1640 + i * 92 + (1 - kk) * 24), line,
+            lambda d, line=line, i=i: d.text((W / 2, L["cap_big"] + i * L["cap_step"] + (1 - kk) * 24), line,
                                              font=F_ITAL, fill=255, anchor="mm"), kk))
 
 # ---- shots (each returns RGBA frame for local time u in seconds) ----
@@ -164,17 +175,17 @@ def shot_intro(u):
     lk = ease((u - 0.2) / 0.9)
     if lk > 0:
         fr.alpha_composite(gold_layer(lambda d: d.rectangle(
-            (W / 2 - 260 * lk, 905, W / 2 + 260 * lk, 906), fill=255)))
+            (W / 2 - 260 * lk, 905 + L["intro_dy"], W / 2 + 260 * lk, 906 + L["intro_dy"]), fill=255)))
     k = ease((u - 0.55) / 1.1)
     if k > 0:
         sp = 22 + 30 * (1 - k)
-        fr.alpha_composite(gold_layer(lambda d: tracked(d, W / 2, 790, "GLOSS", F_LOGO_XL, 255, sp), k))
+        fr.alpha_composite(gold_layer(lambda d: tracked(d, W / 2, 790 + L["intro_dy"], "GLOSS", F_LOGO_XL, 255, sp), k))
     k2 = ease((u - 1.1) / 0.8)
     if k2 > 0:
-        fr.alpha_composite(gold_layer(lambda d: tracked(d, W / 2, 965, "NAIL BAR", F_TRACK, 255, 16), k2))
+        fr.alpha_composite(gold_layer(lambda d: tracked(d, W / 2, 965 + L["intro_dy"], "NAIL BAR", F_TRACK, 255, 16), k2))
     k3 = ease((u - 1.5) / 0.8)
     if k3 > 0:
-        fr.alpha_composite(cream_layer(lambda d: d.text((W / 2, 1080), "Luxury, at your fingertips.",
+        fr.alpha_composite(cream_layer(lambda d: d.text((W / 2, 1080 + L["intro_dy"]), "Luxury, at your fingertips.",
                                                         font=F_ITAL_S, fill=255, anchor="mm"), k3))
     return fr
 
@@ -191,13 +202,13 @@ s_emerald = photo_shot(EMERALD, (330, 500), (300, 460), 920, 780)
 s_daisy = photo_shot(DAISY, (330, 600), (540, 540), 1060, 980)
 s_bows = photo_shot(BOWS, (330, 420), (620, 560), 860, 780)
 
-ARCH_W, ARCH_H = 660, 840
+ARCH_W, ARCH_H, ARCH_Y = L["arch"]
 arch = Image.new("L", (ARCH_W, ARCH_H), 0)
 ad = ImageDraw.Draw(arch)
 ad.ellipse((0, 0, ARCH_W - 1, ARCH_W - 1), fill=255)
 ad.rectangle((0, ARCH_W // 2, ARCH_W - 1, ARCH_H - 1), fill=255)
 ARCH = arch.filter(ImageFilter.GaussianBlur(1))
-AX, AY = (W - ARCH_W) // 2, 150
+AX, AY = (W - ARCH_W) // 2, ARCH_Y
 
 def arch_outline(d, k):
     pad = 14
@@ -213,7 +224,7 @@ END_IMGS = [(EMERALD, (330, 470), 720), (DAISY, (430, 560), 900), (BOWS, (480, 4
 def shot_end(u):
     fr = Image.new("RGBA", (W, H), (8, 6, 5, 255))
     glow = Image.new("L", (W, H), 0)
-    ImageDraw.Draw(glow).ellipse((W / 2 - 520, 120, W / 2 + 520, 1100), fill=60)
+    ImageDraw.Draw(glow).ellipse((W / 2 - 520, L["glow"][0], W / 2 + 520, L["glow"][1]), fill=60)
     gl = Image.new("RGBA", (W, H), (120, 90, 45, 255))
     gl.putalpha(glow.filter(ImageFilter.GaussianBlur(120)))
     fr.alpha_composite(gl)
@@ -232,21 +243,21 @@ def shot_end(u):
     fr.alpha_composite(gold_layer(lambda d: arch_outline(d, k), k))
     k1 = ease((u - 0.4) / 0.9)
     if k1 > 0:
-        fr.alpha_composite(gold_layer(lambda d: tracked(d, W / 2, 1110 + (1 - k1) * 20, "GLOSS",
+        fr.alpha_composite(gold_layer(lambda d: tracked(d, W / 2, L["end_logo"] + (1 - k1) * 20, "GLOSS",
                                                         F_LOGO_L, 255, 22), k1))
     k2 = ease((u - 0.7) / 0.8)
     if k2 > 0:
-        fr.alpha_composite(gold_layer(lambda d: (tracked(d, W / 2, 1235, "NAIL BAR", F_TRACK, 255, 16),
-                                                 d.rectangle((W / 2 - 60, 1290, W / 2 + 60, 1291), fill=255)), k2))
+        fr.alpha_composite(gold_layer(lambda d: (tracked(d, W / 2, L["end_bar"], "NAIL BAR", F_TRACK, 255, 16),
+                                                 d.rectangle((W / 2 - 60, L["end_rule"], W / 2 + 60, L["end_rule"] + 1), fill=255)), k2))
     k3 = ease((u - 1.1) / 0.8)
     if k3 > 0:
-        fr.alpha_composite(cream_layer(lambda d: tracked(d, W / 2, 1350, "BOOK YOUR APPOINTMENT",
+        fr.alpha_composite(cream_layer(lambda d: tracked(d, W / 2, L["end_book"], "BOOK YOUR APPOINTMENT",
                                                          F_TRACK_S, 255, 7), k3 * 0.85, shadow=False))
-        fr.alpha_composite(cream_layer(lambda d: d.text((W / 2, 1440), "(929) 888-8288", font=F_PHONE,
+        fr.alpha_composite(cream_layer(lambda d: d.text((W / 2, L["end_phone"]), "(929) 888-8288", font=F_PHONE,
                                                         fill=255, anchor="mm"), k3))
     k4 = ease((u - 1.5) / 0.8)
     if k4 > 0:
-        fr.alpha_composite(gold_layer(lambda d: d.text((W / 2, 1545), "3 Flushing Ave  ·  Brooklyn, NY 11205",
+        fr.alpha_composite(gold_layer(lambda d: d.text((W / 2, L["end_addr"]), "3 Flushing Ave  ·  Brooklyn, NY 11205",
                                                        font=F_ADDR, fill=255, anchor="mm"), k4))
     return fr
 
