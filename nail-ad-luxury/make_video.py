@@ -193,14 +193,15 @@ def photo_shot(img, a, b, vh0, vh1):
     def fn(u):
         e = smooth(u / 3.6)
         cx, cy = a[0] + (b[0] - a[0]) * e, a[1] + (b[1] - a[1]) * e
-        fr = view(img, 2 * cx, 2 * cy, 2 * (vh0 + (vh1 - vh0) * e)).convert("RGBA")
+        fr = view(img, 2 * cx, 2 * cy, 2 * (vh0 + (vh1 - vh0) * e))
+        fr = fr.filter(ImageFilter.UnsharpMask(radius=1.6, percent=65, threshold=3)).convert("RGBA")
         fr.alpha_composite(SHADE)
         return fr
     return fn
 
-s_emerald = photo_shot(EMERALD, (330, 500), (300, 460), 920, 780)
-s_daisy = photo_shot(DAISY, (330, 600), (540, 540), 1060, 980)
-s_bows = photo_shot(BOWS, (330, 420), (620, 560), 860, 780)
+s_emerald = photo_shot(EMERALD, (330, 470), (300, 450), 920, 880)
+s_daisy = photo_shot(DAISY, (330, 572), (540, 560), 1145, 1090)
+s_bows = photo_shot(BOWS, (300, 480), (660, 480), 959, 910)
 
 ARCH_W, ARCH_H, ARCH_Y = L["arch"]
 arch = Image.new("L", (ARCH_W, ARCH_H), 0)
@@ -283,7 +284,7 @@ def render_shot(k, t):
 
 enc = subprocess.Popen(
     ["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
-     "-r", str(FPS), "-i", "-", "-c:v", "libx264", "-preset", "slow", "-crf", "26",
+     "-r", str(FPS), "-i", "-", "-c:v", "libx264", "-preset", "slow", "-crf", "18",
      "-pix_fmt", "yuv420p", "-movflags", "+faststart", OUT], stdin=subprocess.PIPE)
 
 for i in range(int(TOTAL * FPS)):
@@ -299,7 +300,7 @@ for i in range(int(TOTAL * FPS)):
     fr.alpha_composite(FRAME)
     if t > TOTAL - 0.9:
         fr = Image.alpha_composite(fr, Image.new("RGBA", (W, H), (0, 0, 0, int(255 * smooth((t - TOTAL + 0.9) / 0.9)))))
-    enc.stdin.write(add_grain(fr, i).tobytes())
+    enc.stdin.write(fr.convert("RGB").tobytes())  # no film grain: keeps detail crisp after FB/IG re-compression
 
 enc.stdin.close()
 enc.wait()
